@@ -35,7 +35,7 @@ package RefactorManager {
 	use Capture::Tiny qw(capture_stdout);
 	use Path::Tiny;
 	use Try::Tiny;
-	use List::AllUtils qw(first);
+	use List::AllUtils qw(first all);
 
 	option gitgot_tags => (
 		is => 'ro',
@@ -89,7 +89,7 @@ package RefactorManager {
 		my @tags_re = map { qr/$_/ } split /,/, $self->gitgot_tags;
 		[ grep {
 			my $tags = $_->repo_tags;
-			match( $tags, @tags_re );
+			all { match( $tags, $_ ) } @tags_re;
 		} @$repos ];
 	};
 
