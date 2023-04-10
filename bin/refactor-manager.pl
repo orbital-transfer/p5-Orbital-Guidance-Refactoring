@@ -13,8 +13,6 @@ package RefactorManager {
 	use Mu;
 	use CLI::Osprey;
 
-	use experimental qw(switch);
-
 	use Term::ReadLine;
 	use Term::Choose qw(choose);
 	use Term::TablePrint qw( print_table );
@@ -549,11 +547,9 @@ package RefactorManager {
 		}
 
 		my $attr = '';
-		for ($change_count) {
-			when ( 1 ) { $attr = 'yellow' }
-			when ( 2 ) { $attr = 'cyan' }
-			default       { $attr = $keep_count == 2 ? 'green' : ''  }
-		}
+		if ( $change_count == 1 )    { $attr = 'yellow' }
+		elsif ( $change_count == 2 ) { $attr = 'cyan' }
+		else                         { $attr = $keep_count == 2 ? 'green' : ''  }
 
 		$texts->{package} = colored( [ $attr, 'underline' ], $package_name );
 
