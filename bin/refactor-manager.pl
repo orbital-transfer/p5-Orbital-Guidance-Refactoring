@@ -30,7 +30,7 @@ package RefactorManager {
 
 	use match::smart qw(match);
 
-	use Orbital::Payload::Meta::GitGot;
+	use Orbital::Payload::Tool::GitGot;
 	use Orbital::Payload::VCS::Git;
 	use Capture::Tiny qw(capture_stdout);
 	use Path::Tiny;
@@ -81,7 +81,7 @@ package RefactorManager {
 	}
 
 	lazy gitgot => method() {
-		Orbital::Payload::Meta::GitGot->new;
+		Orbital::Payload::Tool::GitGot->new;
 	};
 
 	lazy repositories_with_tag => method() {
