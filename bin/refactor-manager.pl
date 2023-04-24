@@ -30,7 +30,7 @@ package RefactorManager {
 
 	use match::smart qw(match);
 
-	use Orbital::Payload::Meta::GitGot;
+	use Orbital::Payload::Tool::GitGot;
 	use Orbital::Payload::VCS::Git;
 	use Capture::Tiny qw(capture_stdout);
 	use Path::Tiny;
@@ -81,7 +81,7 @@ package RefactorManager {
 	}
 
 	lazy gitgot => method() {
-		Orbital::Payload::Meta::GitGot->new;
+		Orbital::Payload::Tool::GitGot->new;
 	};
 
 	lazy repositories_with_tag => method() {
@@ -211,8 +211,7 @@ package RefactorManager {
 				{
 					#local @ENV{qw(GIT_SEQUENCE_EDITOR GIT_EDITOR)};
 					local $ENV{GIT_SEQUENCE_EDITOR} = ":";
-					# note: requires sed
-					local $ENV{GIT_EDITOR} = "sed -i -e '/^#/d' -e '/^squash! /d'";
+					local $ENV{GIT_EDITOR} = ":";
 					local $CWD = $git->_git_wrapper->dir;
 					# Can not use Git::Wrapper because it sets GIT_EDITOR itself
 					system(
