@@ -211,8 +211,7 @@ package RefactorManager {
 				{
 					#local @ENV{qw(GIT_SEQUENCE_EDITOR GIT_EDITOR)};
 					local $ENV{GIT_SEQUENCE_EDITOR} = ":";
-					# note: requires sed
-					local $ENV{GIT_EDITOR} = "sed -i -e '/^#/d' -e '/^squash! /d'";
+					local $ENV{GIT_EDITOR} = ":";
 					local $CWD = $git->_git_wrapper->dir;
 					# Can not use Git::Wrapper because it sets GIT_EDITOR itself
 					system(
