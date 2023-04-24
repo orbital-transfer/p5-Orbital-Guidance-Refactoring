@@ -13,6 +13,8 @@ package RefactorManager {
 	use Mu;
 	use CLI::Osprey;
 
+	with 'MooX::Role::Logger';
+
 	use Term::ReadLine;
 	use Term::Choose qw(choose);
 	use Term::TablePrint qw( print_table );
@@ -111,6 +113,8 @@ package RefactorManager {
 			my $git = Orbital::Payload::VCS::Git->new(
 				directory => $repo->repo_path,
 			);
+
+			$self->_logger->info("Working on repo: @{[ $repo->repo_path ]}");
 
 			# force reset from master branch
 			$git->_git_wrapper->checkout( { 'B', $self->refactor_branch_name }, $self->base_branch_name);
@@ -757,6 +761,7 @@ package RefactorManager {
 
 	has _run_loop => ( is => 'rw' );
 
+	use Log::Any::Adapter ('Stderr');
 	method run() {
 		binmode STDOUT, ':encoding(UTF-8)';
 		$self->read_data;
