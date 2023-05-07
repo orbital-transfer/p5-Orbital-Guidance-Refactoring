@@ -85,10 +85,10 @@ package RefactorManager {
 	};
 
 	lazy repositories_with_tag => method() {
-		my $repos = $self->gitgot->data;
+		my $repos = $self->gitgot->repos;
 		my @tags_re = map { qr/$_/ } split /,/, $self->gitgot_tags;
 		[ grep {
-			my $tags = $_->repo_tags;
+			my $tags = $_->tags;
 			all { match( $tags, $_ ) } @tags_re;
 		} @$repos ];
 	};
@@ -97,11 +97,12 @@ package RefactorManager {
 		my $repos = $self->repositories_with_tag;
 
 		for my $repo (@$repos) {
+			#next unless -d $repo->path;
 			my $git = Orbital::Payload::VCS::Git->new(
-				directory => $repo->repo_path,
+				directory => $repo->path,
 			);
 
-			die "Repo @{[ $repo->repo_name ]} is dirty\n"
+			die "Repo @{[ $repo->name ]} is dirty\n"
 				if $git->_git_wrapper->status->is_dirty;
 		}
 	}
@@ -111,10 +112,10 @@ package RefactorManager {
 
 		for my $repo (@$repos) {
 			my $git = Orbital::Payload::VCS::Git->new(
-				directory => $repo->repo_path,
+				directory => $repo->path,
 			);
 
-			$self->_logger->info("Working on repo: @{[ $repo->repo_path ]}");
+			$self->_logger->info("Working on repo: @{[ $repo->path ]}");
 
 			# force reset from master branch
 			$git->_git_wrapper->checkout( { 'B', $self->refactor_branch_name }, $self->base_branch_name);
@@ -201,7 +202,7 @@ package RefactorManager {
 
 		for my $repo (@$repos) {
 			my $git = Orbital::Payload::VCS::Git->new(
-				directory => $repo->repo_path,
+				directory => $repo->path,
 			);
 
 			if( ! $self->does_git_repo_have_commits($git) ) {
@@ -228,11 +229,11 @@ package RefactorManager {
 		@packages_with_name_changes = sort { $a cmp $b } @packages_with_name_changes;
 		for my $repo (@$repos) {
 			my $git = Orbital::Payload::VCS::Git->new(
-				directory => $repo->repo_path,
+				directory => $repo->path,
 			);
 			for my $package ( @packages_with_name_changes ) {
 				my @grep = try { $git->_git_wrapper->grep( $package ) };
-				push @{ $matches{$repo->repo_name} }, $package if @grep;
+				push @{ $matches{$repo->name} }, $package if @grep;
 			}
 		}
 		if( %matches ) {
@@ -251,8 +252,8 @@ package RefactorManager {
 
 	method get_repo_from_path($path) {
 		first {
-			$_->repo_path eq $path;
-		} @{ $self->gitgot->data }
+			$_->path eq $path;
+		} @{ $self->gitgot->repos }
 	}
 
 	method get_files_for_package( $repo, $package ) {
@@ -268,16 +269,16 @@ package RefactorManager {
 
 	method move_files($files, $from_repo, $to_repo, $message) {
 		my $from_git = Orbital::Payload::VCS::Git->new(
-			directory => $from_repo->repo_path,
+			directory => $from_repo->path,
 		);
 		my $to_git = Orbital::Payload::VCS::Git->new(
-			directory => $to_repo->repo_path,
+			directory => $to_repo->path,
 		);
 
 		for my $file (@$files) {
 			my $destination = $file
-				->relative($from_repo->repo_path)
-				->absolute($to_repo->repo_path);
+				->relative($from_repo->path)
+				->absolute($to_repo->path);
 			die "Destination file already exists: $destination\n"
 				if -f $destination;
 			$destination->parent->mkpath;
@@ -293,11 +294,11 @@ package RefactorManager {
 
 		for my $repo (@$repos) {
 			my $git = Orbital::Payload::VCS::Git->new(
-				directory => $repo->repo_path,
+				directory => $repo->path,
 			);
 
 			{
-				local $CWD = $repo->repo_path;
+				local $CWD = $repo->path;
 				system( qw(prt rename_class), $from_package, $to_package );
 				# note: requires File::CodeSearch
 				# this is to replace in roles (with qw(...))
@@ -425,7 +426,7 @@ package RefactorManager {
 
 	method select_from_repos($repos, $args = {}) {
 		my @repo_names = map {
-			$_->repo_name
+			$_->name
 				=~ s{^([^/]+)/([^/]+)$}{colored(['green'], $1).'/'.colored(['blue'], $2)}egr;
 		} @$repos;
 		my $repo_idx = choose(
@@ -469,7 +470,7 @@ package RefactorManager {
 	method get_packages($repo) {
 		my $re = qr/^package\s+([^;]+)/m;
 		my ($ack_output) = capture_stdout {
-			local $CWD = $repo->repo_path;
+			local $CWD = $repo->path;
 			system(
 				qw(ack --nogroup),
 				$re
@@ -590,7 +591,7 @@ package RefactorManager {
 			my $packages = $self->get_packages( $repo );
 
 			for my $package (@$packages) {
-				$data->{packages}{$package}{repo}{path} = $repo->repo_path;
+				$data->{packages}{$package}{repo}{path} = $repo->path;
 			}
 
 			my $table = $self->get_table_for_packages( $packages );
@@ -599,7 +600,7 @@ package RefactorManager {
 			my $package_idx = choose(
 				\@lines,
 				{
-					prompt => "Select package to process in @{[ $repo->repo_name ]}",
+					prompt => "Select package to process in @{[ $repo->name ]}",
 					index => 1,
 					color => 2,
 					default => $last_package,
@@ -616,12 +617,12 @@ package RefactorManager {
 
 	method get_package_pm_file( $repo, $package ) {
 		path("lib/" . ( $package =~ s,::,/,gr ) . '.pm')
-			->absolute( $repo->repo_path );
+			->absolute( $repo->path );
 	}
 
 	method get_package_test_file( $repo, $package ) {
 		path("t/" . ( $package =~ s,::,/,gr ) . '.t')
-			->absolute( $repo->repo_path );
+			->absolute( $repo->path );
 	}
 
 	method process_package( $repo, $package ) {
@@ -676,11 +677,11 @@ package RefactorManager {
 
 					my ($new_repo, $new_repo_idx) = $self->select_from_repos( $repos );
 					if( $new_repo ) {
-						if( $new_repo->repo_path ne $repo->repo_path ) {
+						if( $new_repo->path ne $repo->path ) {
 							$package_data->{repo} = {
 								action => 'CHANGE',
-								from => $repo->repo_path,
-								to => $new_repo->repo_path,
+								from => $repo->path,
+								to => $new_repo->path,
 							};
 						} else {
 							$package_data->{repo} = {
@@ -742,7 +743,7 @@ package RefactorManager {
 				[ map { $_->{text} } @actions ],
 				{
 					prompt => <<~EOF,
-					Select action for $package in @{[ $repo->repo_name ]}:
+					Select action for $package in @{[ $repo->name ]}:
 					$table
 					EOF
 					index => 1,
