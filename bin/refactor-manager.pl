@@ -11,7 +11,7 @@ use Modern::Perl;
 
 package RefactorManager {
 	use Mu;
-	use CLI::Osprey;
+	use CLI::Osprey on_demand => 1;
 
 	with 'MooX::Role::Logger';
 
