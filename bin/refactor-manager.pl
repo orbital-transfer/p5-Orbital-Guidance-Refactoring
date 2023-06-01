@@ -35,7 +35,7 @@ package RefactorManager {
 	use Capture::Tiny qw(capture_stdout);
 	use Path::Tiny;
 	use Try::Tiny;
-	use List::AllUtils qw(first all);
+	use List::Util::MaybeXS qw(first all);
 
 	option gitgot_tags => (
 		is => 'ro',
